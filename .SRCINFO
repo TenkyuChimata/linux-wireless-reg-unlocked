@@ -2,6 +2,7 @@ pkgbase = iwlwifi-lar-patched
 	pkgdesc = Patched Intel iwlwifi/iwlmvm modules with lar_disable support for Arch Linux UKI systems
 	pkgver = 6.19.9
 	pkgrel = 1
+	url = https://github.com/TenkyuChimata/iwlwifi-lar-patched
 	install = iwlwifi-lar-patched.install
 	arch = x86_64
 	license = GPL2
