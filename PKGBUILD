@@ -1,4 +1,4 @@
-pkgname=iwlwifi-reg-unlocked
+pkgname=linux-wireless-reg-unlocked
 _pkgbase=linux
 
 _kernelpkgver=$(pacman -Q "${_pkgbase}" | awk '{print $2}')
@@ -11,7 +11,7 @@ pkgrel=1
 pkgdesc="Patched Intel iwlwifi/iwlmvm modules with LAR disable and 6GHz/NO_IR unlock support for Arch Linux UKI systems"
 arch=('x86_64')
 license=('GPL2')
-url="https://github.com/TenkyuChimata/iwlwifi-reg-unlocked"
+url="https://github.com/TenkyuChimata/linux-wireless-reg-unlocked"
 depends=(
   "${_pkgbase}=${_kernelpkgver}"
   "${_pkgbase}-headers=${_kernelpkgver}"

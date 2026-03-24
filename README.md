@@ -1,4 +1,4 @@
-# iwlwifi-reg-unlocked
+# linux-wireless-reg-unlocked
 
 Patched Intel **iwlwifi** kernel modules with **regulatory restrictions relaxed**, including:
 
@@ -41,8 +41,8 @@ This project **intentionally bypasses regulatory enforcement mechanisms**.
 ### Manual build
 
 ```bash
-git clone https://github.com/TenkyuChimata/iwlwifi-reg-unlocked.git
-cd iwlwifi-reg-unlocked
+git clone https://github.com/TenkyuChimata/linux-wireless-reg-unlocked.git
+cd linux-wireless-reg-unlocked
 makepkg -si
 ```
 

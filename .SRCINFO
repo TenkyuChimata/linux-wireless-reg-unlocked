@@ -1,9 +1,9 @@
-pkgbase = iwlwifi-reg-unlocked
+pkgbase = linux-wireless-reg-unlocked
 	pkgdesc = Patched Intel iwlwifi/iwlmvm modules with LAR disable and 6GHz/NO_IR unlock support for Arch Linux UKI systems
 	pkgver = 6.19.9
 	pkgrel = 1
-	url = https://github.com/TenkyuChimata/iwlwifi-reg-unlocked
-	install = iwlwifi-reg-unlocked.install
+	url = https://github.com/TenkyuChimata/linux-wireless-reg-unlocked
+	install = linux-wireless-reg-unlocked.install
 	arch = x86_64
 	license = GPL2
 	makedepends = bc
@@ -28,4 +28,4 @@ pkgbase = iwlwifi-reg-unlocked
 	sha256sums = d0f468221c28f5f07a040f36df4dcf571d3931eef7ed273d4e57b631ef9540d3
 	sha256sums = 92177e53d23660b4bef9cadf192418a6dead40f38606368fd44532a6a5272ca5
 
-pkgname = iwlwifi-reg-unlocked
+pkgname = linux-wireless-reg-unlocked
