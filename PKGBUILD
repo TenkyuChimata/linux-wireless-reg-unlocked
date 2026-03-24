@@ -34,7 +34,7 @@ sha256sums=(
   '8510a7a2b69f696999efddb40c79f3735049406d0f8432c2a23dd3f58ab8f883'
   'ef26436f30412184a8af4418f7deb00992ef7624d9dc4960d9730e56ed2cee25'
   'd0f468221c28f5f07a040f36df4dcf571d3931eef7ed273d4e57b631ef9540d3'
-  'a50fe688ef5c647b9b7ca7c6c5f351a4c0d42bfc5044f14df88f0d1e02a92806'
+  '92177e53d23660b4bef9cadf192418a6dead40f38606368fd44532a6a5272ca5'
 )
 install="${pkgname}.install"
 
@@ -54,7 +54,8 @@ prepare() {
 
 build() {
   local builddir="/usr/lib/modules/${_krel}/build"
-  local srcsubdir="${srcdir}/linux-${_kernver}/drivers/net/wireless/intel/iwlwifi"
+  local iwlsrc="${srcdir}/linux-${_kernver}/drivers/net/wireless/intel/iwlwifi"
+  local cfgsrcdir="${srcdir}/linux-${_kernver}/net/wireless"
 
   [[ -d "${builddir}" ]] || {
     echo "ERROR: Missing kernel build directory: ${builddir}"
@@ -62,12 +63,15 @@ build() {
     return 1
   }
 
-  [[ -d "${srcsubdir}" ]] || {
-    echo "ERROR: Missing iwlwifi source directory: ${srcsubdir}"
+  [[ -d "${iwlsrc}" ]] || {
+    echo "ERROR: Missing iwlwifi source directory: ${iwlsrc}"
     return 1
   }
 
-  cd "${srcsubdir}"
+  [[ -d "${cfgsrcdir}" ]] || {
+    echo "ERROR: Missing cfg80211 source directory: ${cfgsrcdir}"
+    return 1
+  }
 
   export KBUILD_BUILD_USER='builder'
   export KBUILD_BUILD_HOST='arch'
@@ -75,7 +79,15 @@ build() {
   export KBUILD_BUILD_TIMESTAMP='1970-01-01'
 
   make -C "${builddir}" \
-    M="$PWD" \
+    M="${iwlsrc}" \
+    KBUILD_BUILD_USER="${KBUILD_BUILD_USER}" \
+    KBUILD_BUILD_HOST="${KBUILD_BUILD_HOST}" \
+    KBUILD_BUILD_VERSION="${KBUILD_BUILD_VERSION}" \
+    KBUILD_BUILD_TIMESTAMP="${KBUILD_BUILD_TIMESTAMP}" \
+    modules
+
+  make -C "${builddir}" \
+    M="${cfgsrcdir}" \
     KBUILD_BUILD_USER="${KBUILD_BUILD_USER}" \
     KBUILD_BUILD_HOST="${KBUILD_BUILD_HOST}" \
     KBUILD_BUILD_VERSION="${KBUILD_BUILD_VERSION}" \
@@ -85,15 +97,23 @@ build() {
 
 package() {
   local moddir="${pkgdir}/usr/lib/modules/${_krel}/updates/iwlwifi-lar"
+  local cfgdir="${pkgdir}/usr/lib/modules/${_krel}/updates/cfg80211"
   local srcsubdir="${srcdir}/linux-${_kernver}/drivers/net/wireless/intel/iwlwifi"
+  local cfgsrc="${srcdir}/linux-${_kernver}/net/wireless/cfg80211.ko"
 
   install -dm755 "${moddir}"
+  install -dm755 "${cfgdir}"
 
   install -m644 "${srcsubdir}/iwlwifi.ko" "${moddir}/iwlwifi.ko"
   install -m644 "${srcsubdir}/mvm/iwlmvm.ko" "${moddir}/iwlmvm.ko"
 
   if [[ -f "${srcsubdir}/dvm/iwldvm.ko" ]]; then
     install -m644 "${srcsubdir}/dvm/iwldvm.ko" "${moddir}/iwldvm.ko"
+  fi
+
+  if [[ -f "${cfgsrc}" ]]; then
+    install -m644 "${cfgsrc}" "${cfgdir}/cfg80211.ko"
+    strip --strip-debug "${cfgdir}/cfg80211.ko" || true
   fi
 
   strip --strip-debug "${moddir}/iwlwifi.ko" || true
@@ -110,7 +130,7 @@ package() {
     "${pkgdir}/etc/dracut.conf.d/iwlwifi-lar.conf"
 
   install -Dm644 /dev/stdin \
-    "${pkgdir}/usr/share/iwlwifi-lar-patched/kernel-version" <<EOF
+    "${pkgdir}/usr/share/${pkgname}/kernel-version" <<EOF
 ${_krel}
 EOF
 }
