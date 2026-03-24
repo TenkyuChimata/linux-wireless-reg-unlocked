@@ -1,38 +1,36 @@
 # linux-wireless-reg-unlocked
 
-Patched Intel **iwlwifi** kernel modules with **regulatory restrictions relaxed**, including:
+Patched Intel **iwlwifi** and Linux **cfg80211/regulatory** components to relax wireless restrictions and expose additional capabilities.
 
-- LAR (Location Aware Regulatory) disable
-- 6 GHz channel exposure
-- NO_IR (no initiate radiation) removal
-- Forced 6 GHz VLP AP capability
-
-Designed for **Arch Linux** users who need full control over Wi-Fi capabilities.
+This project provides external kernel modules for Arch Linux that modify both the Intel iwlwifi driver and the cfg80211 regulatory layer, allowing advanced users greater control over Wi-Fi behavior without rebuilding the full kernel.
 
 ---
 
 ## 🚀 Features
 
-- Disable Intel iwlwifi LAR restrictions
-- Unlock hidden / restricted channels (including 6 GHz)
-- Remove `NO_IR` limitations (allow AP/initiating transmissions)
-- Enable 6 GHz VLP AP capability regardless of regulatory flags
-- Preserve compatibility with Arch Linux kernel updates
-- Built as external kernel modules (no full kernel rebuild)
+- Add `lar_disable` module parameter to iwlwifi
+- Disable Intel iwlwifi LAR (Location Aware Regulatory)
+- Expose channels normally filtered by NVM validity checks
+- Remove multiple bandwidth and transmit restrictions
+- Remove `NO_IR` limitations (allow AP / initiating transmissions)
+- Force-enable 6 GHz VLP AP capability
+- Reduce cfg80211 regulatory intersection enforcement
+- Ignore driver and Country-IE regulatory hints
+- Built as external kernel modules (no full kernel rebuild required)
 
 ---
 
 ## ⚠️ Disclaimer
 
-> 🚨 **IMPORTANT**
+> 🚨 IMPORTANT
 
-This project **intentionally bypasses regulatory enforcement mechanisms**.
+This project intentionally bypasses regulatory enforcement mechanisms.
 
 - May violate local wireless communication laws
 - May cause interference with licensed spectrum users
 - Not certified for production or commercial use
 
-**By using this software, you accept full responsibility for compliance with your local regulations.**
+Use at your own risk. You are responsible for complying with local regulations.
 
 ---
 
@@ -50,49 +48,50 @@ makepkg -si
 
 ## 🔧 Usage
 
-After installation:
+Reboot after installation to load the modified modules.
+
+This package installs a modprobe configuration enabling:
 
 ```bash
-reboot
+options iwlwifi lar_disable=Y
 ```
 
-Set regulatory domain manually:
+Verify module parameter:
 
 ```bash
-sudo iw reg set US
+modinfo iwlwifi | grep lar_disable
 ```
 
-Verify:
+Check regulatory state:
 
 ```bash
 iw reg get
+iw phy
+```
+
+You may still manually set a regulatory domain:
+
+```bash
+sudo iw reg set JP
 ```
 
 ---
 
-## 📡 What is unlocked
+## 📡 What is modified
 
-This patch modifies iwlwifi behavior to:
+### iwlwifi layer
 
-### ✔ Channel handling
+- Optional LAR disable via module parameter
+- Skip selected invalid channel filtering
+- Remove NO_IR-related transmit restrictions
+- Relax bandwidth and regulatory capability checks
+- Force-enable 6 GHz VLP AP capability
 
-- Prevent 6 GHz channels from being discarded when LAR is disabled
-- Allow channels without `NVM_CHANNEL_VALID`
+### cfg80211 layer
 
-### ✔ Transmission restrictions
-
-- Remove `NO_IR` flags
-- Allow initiating transmissions (AP / P2P GO)
-
-### ✔ 6 GHz capabilities
-
-- Force-enable `IEEE80211_CHAN_ALLOW_6GHZ_VLP_AP`
-- Remove AFC/VLP client restrictions
-
-### ✔ Regulatory bypass
-
-- Ignore parts of regulatory capability (`reg_capa`)
-- Allow manual override via `iw reg set`
+- Bypass regulatory domain intersection logic
+- Ignore driver-provided regulatory hints
+- Ignore Country IE regulatory updates
 
 ---
 
@@ -100,14 +99,17 @@ This patch modifies iwlwifi behavior to:
 
 This project patches:
 
-- `iwl-nvm-parse.c`
-- related regulatory flag handling paths
+- `drivers/net/wireless/intel/iwlwifi/*`
+- `drivers/net/wireless/intel/iwlwifi/mvm/*`
+- `net/wireless/reg.c`
 
-Key changes:
+Key behavior changes include:
 
-- Skip invalid channel filtering when LAR is disabled (for 6 GHz)
-- Remove regulatory-based transmit restrictions
-- Force-enable selected capabilities
+- Treat LAR as disabled when requested
+- Expose channels normally filtered out
+- Remove multiple regulatory-based restrictions
+- Force-enable selected 6 GHz capabilities
+- Bypass cfg80211 regulatory merging and overrides
 
 ---
 
@@ -119,6 +121,8 @@ Key changes:
 
 ## ⚠️ Known limitations
 
-- 6 GHz still depends on firmware capabilities
-- Some AP modes may fail due to firmware constraints
-- Future kernel updates may break patch offsets
+- 5 GHz and 6 GHz AP operation may still be restricted by firmware
+- Hardware/firmware may prevent actual transmission on some channels
+- Displayed capabilities may exceed real hardware capability
+- Behavior may vary across different Intel chipsets and firmware versions
+- Future kernel updates may break patch compatibility
