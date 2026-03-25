@@ -7,38 +7,51 @@ _archrel=$(printf '%s\n' "${_kernelpkgver}" | sed -E "s/^${_kernver}\.(.*)$/\1/"
 _krel="${_kernver}-${_archrel}"
 
 pkgver="${_kernver}"
-pkgrel=1
-pkgdesc="Patched Intel iwlwifi and cfg80211 modules with LAR disable, regulatory bypass and 6GHz/NO_IR unlock support for Arch Linux"
+pkgrel=2
+pkgdesc="Patched iwlwifi and cfg80211 modules with LAR disable and modified regulatory behavior for Arch Linux"
 arch=('x86_64')
-license=('GPL2')
 url="https://github.com/TenkyuChimata/linux-wireless-reg-unlocked"
+license=('GPL-2.0-only')
+
 depends=(
   "${_pkgbase}=${_kernelpkgver}"
   "${_pkgbase}-headers=${_kernelpkgver}"
-  'dracut'
-  'systemd'
   'zstd'
 )
-makedepends=('bc' 'kmod')
+
+optdepends=(
+  'mkinitcpio: rebuild initramfs for mkinitcpio-based systems'
+  'dracut: rebuild initramfs or UKI for dracut-based systems'
+  'systemd: required for kernel-install based workflows'
+  'sbctl: re-sign boot artifacts for Secure Boot systems if needed'
+)
+
+makedepends=(
+  'bc'
+  'kmod'
+  'patch'
+)
+
 source=(
   "https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-${_kernver}.tar.xz"
   '0001-iwlwifi-add-lar_disable.patch'
   '0002-iwlwifi-unlock-6ghz-and-noir.patch'
   '0003-cfg80211-disable-regdom-intersect-and-ignore-hints.patch'
   'iwlwifi-lar.conf'
-  'dracut-iwlwifi.conf'
+  'dracut-wireless-reg-unlocked.conf'
 )
+
 sha256sums=(
-  'SKIP'
+  'c16068a3af12e3943dee3b1eef57ca70229c069128bfa1184fb3f48b219d55bf'
   'da2ab52ccdef2b93088c9e0c56bc1c166bf748d021b529cb2af2ff6c5d9e85cc'
   '8510a7a2b69f696999efddb40c79f3735049406d0f8432c2a23dd3f58ab8f883'
   'ef26436f30412184a8af4418f7deb00992ef7624d9dc4960d9730e56ed2cee25'
   'd0f468221c28f5f07a040f36df4dcf571d3931eef7ed273d4e57b631ef9540d3'
-  '92177e53d23660b4bef9cadf192418a6dead40f38606368fd44532a6a5272ca5'
+  '3758f059f40e24561f588829cb80384324d75b0745d5eba6f4b6313b5809e2d1'
 )
-install="${pkgname}.install"
 
-options=(!strip !debug)
+install="${pkgname}.install"
+options=(!debug)
 
 prepare() {
   cd "${srcdir}/linux-${_kernver}"
@@ -47,15 +60,24 @@ prepare() {
   patch -Np1 -i "${srcdir}/0002-iwlwifi-unlock-6ghz-and-noir.patch"
   patch -Np1 -i "${srcdir}/0003-cfg80211-disable-regdom-intersect-and-ignore-hints.patch"
 
-  cd drivers/net/wireless/intel/iwlwifi
-  [[ -f dvm/Makefile ]] && sed -i 's|$(srctree)/||g' dvm/Makefile
-  [[ -f mvm/Makefile ]] && sed -i 's|$(srctree)/||g' mvm/Makefile
+  # Fix relative source references for out-of-tree module builds
+  if [[ -f drivers/net/wireless/intel/iwlwifi/dvm/Makefile ]]; then
+    sed -i 's|$(srctree)/||g' drivers/net/wireless/intel/iwlwifi/dvm/Makefile
+  fi
+
+  if [[ -f drivers/net/wireless/intel/iwlwifi/mvm/Makefile ]]; then
+    sed -i 's|$(srctree)/||g' drivers/net/wireless/intel/iwlwifi/mvm/Makefile
+  fi
+
+  if [[ -f drivers/net/wireless/intel/iwlwifi/mld/Makefile ]]; then
+    sed -i 's|$(srctree)/||g' drivers/net/wireless/intel/iwlwifi/mld/Makefile
+  fi
 }
 
 build() {
   local builddir="/usr/lib/modules/${_krel}/build"
   local iwlsrc="${srcdir}/linux-${_kernver}/drivers/net/wireless/intel/iwlwifi"
-  local cfgsrcdir="${srcdir}/linux-${_kernver}/net/wireless"
+  local cfgsrc="${srcdir}/linux-${_kernver}/net/wireless"
 
   [[ -d "${builddir}" ]] || {
     echo "ERROR: Missing kernel build directory: ${builddir}"
@@ -68,8 +90,8 @@ build() {
     return 1
   }
 
-  [[ -d "${cfgsrcdir}" ]] || {
-    echo "ERROR: Missing cfg80211 source directory: ${cfgsrcdir}"
+  [[ -d "${cfgsrc}" ]] || {
+    echo "ERROR: Missing cfg80211 source directory: ${cfgsrc}"
     return 1
   }
 
@@ -87,7 +109,7 @@ build() {
     modules
 
   make -C "${builddir}" \
-    M="${cfgsrcdir}" \
+    M="${cfgsrc}" \
     KBUILD_BUILD_USER="${KBUILD_BUILD_USER}" \
     KBUILD_BUILD_HOST="${KBUILD_BUILD_HOST}" \
     KBUILD_BUILD_VERSION="${KBUILD_BUILD_VERSION}" \
@@ -96,39 +118,49 @@ build() {
 }
 
 package() {
-  local moddir="${pkgdir}/usr/lib/modules/${_krel}/updates/iwlwifi-lar"
-  local cfgdir="${pkgdir}/usr/lib/modules/${_krel}/updates/cfg80211"
-  local srcsubdir="${srcdir}/linux-${_kernver}/drivers/net/wireless/intel/iwlwifi"
-  local cfgsrc="${srcdir}/linux-${_kernver}/net/wireless/cfg80211.ko"
+  local moddir="${pkgdir}/usr/lib/modules/${_krel}/updates/${pkgname}"
+  local iwlsrc="${srcdir}/linux-${_kernver}/drivers/net/wireless/intel/iwlwifi"
+  local cfgsrc="${srcdir}/linux-${_kernver}/net/wireless"
 
   install -dm755 "${moddir}"
-  install -dm755 "${cfgdir}"
 
-  install -m644 "${srcsubdir}/iwlwifi.ko" "${moddir}/iwlwifi.ko"
-  install -m644 "${srcsubdir}/mvm/iwlmvm.ko" "${moddir}/iwlmvm.ko"
+  # Core Intel wireless modules
+  install -m644 "${iwlsrc}/iwlwifi.ko" "${moddir}/iwlwifi.ko"
+  install -m644 "${iwlsrc}/mvm/iwlmvm.ko" "${moddir}/iwlmvm.ko"
 
-  if [[ -f "${srcsubdir}/dvm/iwldvm.ko" ]]; then
-    install -m644 "${srcsubdir}/dvm/iwldvm.ko" "${moddir}/iwldvm.ko"
+  if [[ -f "${iwlsrc}/dvm/iwldvm.ko" ]]; then
+    install -m644 "${iwlsrc}/dvm/iwldvm.ko" "${moddir}/iwldvm.ko"
   fi
 
-  if [[ -f "${cfgsrc}" ]]; then
-    install -m644 "${cfgsrc}" "${cfgdir}/cfg80211.ko"
-    strip --strip-debug "${cfgdir}/cfg80211.ko" || true
+  if [[ -f "${iwlsrc}/mld/iwlmld.ko" ]]; then
+    install -m644 "${iwlsrc}/mld/iwlmld.ko" "${moddir}/iwlmld.ko"
   fi
 
+  # Patched cfg80211
+  install -m644 "${cfgsrc}/cfg80211.ko" "${moddir}/cfg80211.ko"
+
+  # Strip debug symbols from packaged modules
   strip --strip-debug "${moddir}/iwlwifi.ko" || true
   strip --strip-debug "${moddir}/iwlmvm.ko" || true
+  strip --strip-debug "${moddir}/cfg80211.ko" || true
 
   if [[ -f "${moddir}/iwldvm.ko" ]]; then
     strip --strip-debug "${moddir}/iwldvm.ko" || true
   fi
 
+  if [[ -f "${moddir}/iwlmld.ko" ]]; then
+    strip --strip-debug "${moddir}/iwlmld.ko" || true
+  fi
+
+  # modprobe configuration
   install -Dm644 "${srcdir}/iwlwifi-lar.conf" \
     "${pkgdir}/etc/modprobe.d/iwlwifi-lar.conf"
 
-  install -Dm644 "${srcdir}/dracut-iwlwifi.conf" \
-    "${pkgdir}/etc/dracut.conf.d/iwlwifi-lar.conf"
+  # optional dracut configuration
+  install -Dm644 "${srcdir}/dracut-wireless-reg-unlocked.conf" \
+    "${pkgdir}/etc/dracut.conf.d/wireless-reg-unlocked.conf"
 
+  # persist built kernel release for .install script
   install -Dm644 /dev/stdin \
     "${pkgdir}/usr/share/${pkgname}/kernel-version" <<EOF
 ${_krel}
