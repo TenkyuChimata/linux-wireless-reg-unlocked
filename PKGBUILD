@@ -7,7 +7,7 @@ _archrel=$(printf '%s\n' "${_kernelpkgver}" | sed -E "s/^${_kernver}\.(.*)$/\1/"
 _krel="${_kernver}-${_archrel}"
 
 pkgver="${_kernver}"
-pkgrel=6
+pkgrel=1
 pkgdesc="Patched iwlwifi and cfg80211 modules with LAR disable and modified regulatory behavior for Arch Linux"
 arch=('x86_64')
 url="https://github.com/TenkyuChimata/linux-wireless-reg-unlocked"
@@ -42,7 +42,7 @@ source=(
 )
 
 sha256sums=(
-  'c16068a3af12e3943dee3b1eef57ca70229c069128bfa1184fb3f48b219d55bf'
+  '466d441a0ea5e04b7023618b7b201bfd60effab225f806fd41ce663484395a1c'
   'da2ab52ccdef2b93088c9e0c56bc1c166bf748d021b529cb2af2ff6c5d9e85cc'
   '96f91b3ff8d5caafe4939cb22bb455d34d107d08e14cf3af6dbb47ef70553732'
   'e8574dead1cb1f2b3732b0daeffa5bb9d71e1cc8eee5203348bbe9169c5adbe6'
