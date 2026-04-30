@@ -33,7 +33,7 @@ makedepends=(
 )
 
 source=(
-  "https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-${_kernver}.tar.xz"
+  "https://cdn.kernel.org/pub/linux/kernel/v7.x/linux-${_kernver}.tar.xz"
   '0001-iwlwifi-add-lar_disable.patch'
   '0002-iwlwifi-nvm-unlock-6ghz-and-relax-channel-flags.patch'
   '0003-cfg80211-allow-unsigned-regdb-and-reject-driver-country-ie-regdom-hints.patch'
@@ -42,7 +42,7 @@ source=(
 )
 
 sha256sums=(
-  'cde8bf6739be4a0777fedbbba5330b8188c55680c45a922a4dfa289cbec6f185'
+  '53591a03294527a48ccb0b9e559e922df8a38554745a1206827ca751d2ca7662'
   'da2ab52ccdef2b93088c9e0c56bc1c166bf748d021b529cb2af2ff6c5d9e85cc'
   '96f91b3ff8d5caafe4939cb22bb455d34d107d08e14cf3af6dbb47ef70553732'
   'e8574dead1cb1f2b3732b0daeffa5bb9d71e1cc8eee5203348bbe9169c5adbe6'
